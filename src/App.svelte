@@ -15,7 +15,7 @@
 	import { Toaster } from "./components/widgets";
 	import { setContext } from "svelte";
 
-	document.title = "Joserdle";
+	document.title = "JOSERDLE";
 </script>
 
 <script lang="ts">
