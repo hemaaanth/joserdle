@@ -1,7 +1,7 @@
 {
   "name": "joserdle",
   "description": "A remake of the popular game Wordle with additional modes and features.",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "type": "module",
   "private": "true",
   "license": "GPL-3.0",
@@ -13,14 +13,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MikhaD/wordle.git"
+    "url": "git+https://github.com/hemaaanth/joserdle.git"
   },
   "keywords": [],
-  "author": "MikhaD",
+  "author": "Hemanth",
   "bugs": {
-    "url": "https://github.com/MikhaD/wordle/issues"
+    "url": "https://github.com/hemaaanth/joserdle/issues"
   },
-  "homepage": "https://github.com/MikhaD/wordle#readme",
+  "homepage": "https://github.com/hemaaanth/joserdle#readme",
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.0.2",
     "@tsconfig/svelte": "^3.0.0",
