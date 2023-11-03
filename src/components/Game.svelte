@@ -243,7 +243,6 @@
 
 	<svelte:fragment slot="footer">
 		<div>
-			<div>v{version}</div>
 			<div
 				title="double click to reset your stats"
 				class="word"
@@ -252,7 +251,7 @@
 					toaster.pop("localStorage cleared");
 				}}
 			>
-				{modeData.modes[$mode].name} word #{game.wordNumber}
+			v{version}, {modeData.modes[$mode].name} word #{game.wordNumber}
 			</div>
 		</div>
 	</svelte:fragment>
