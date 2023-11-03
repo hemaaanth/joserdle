@@ -47,7 +47,7 @@
 			toaster.pop(modeData.modes[$mode].name);
 		}}
 	>
-		wordle+
+		joserdle
 	</h1>
 	<div class="icons">
 		{#if showStats}
@@ -71,7 +71,7 @@
 			on:click={() => dispatch("closeTutPopUp")}
 			on:keydown={() => dispatch("closeTutPopUp")}
 		>
-			Swipe board or tap WORDLE+ to change game mode
+			Swipe board or tap JOSERDLE to change game mode
 			<span class="ok">OK</span>
 		</div>
 	{/if}
