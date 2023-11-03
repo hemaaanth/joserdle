@@ -78,14 +78,6 @@
 				</svg>
 			</svelte:fragment>
 		</Setting>
-		<div class="links">
-			<a href="https://github.com/MikhaD/wordle" target="_blank" rel="noreferrer">
-				Leave a ⭐
-			</a>
-			<a href="https://github.com/MikhaD/wordle/issues" target="_blank" rel="noreferrer">
-				Report a Bug
-			</a>
-		</div>
 	</div>
 </div>
 

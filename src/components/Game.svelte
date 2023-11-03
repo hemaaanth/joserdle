@@ -242,9 +242,6 @@
 	<Tips change={showSettings} />
 
 	<svelte:fragment slot="footer">
-		<a href="https://www.nytimes.com/games/wordle/" target="_blank" rel="noreferrer"
-			>Original Wordle</a
-		>
 		<div>
 			<div>v{version}</div>
 			<div
