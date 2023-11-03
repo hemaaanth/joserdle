@@ -1,6 +1,6 @@
 //! IF ANYTHING IN THIS FILE IS CHANGED MAKE SURE setVersion.js HAS ALSO BEEN UPDATED
 // Increase the v number when the app is updated
-const version = "1.6.2";
+const version = "1.6.3";
 const cacheName = `joserdle-v${version}`;
 
 const assetsToCache = [
