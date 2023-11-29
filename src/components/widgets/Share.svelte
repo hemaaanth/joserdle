@@ -9,13 +9,14 @@
 	const toaster = getContext<Toaster>("toaster");
 
 	function copyStats() {
+		const gameLink = `${window.location.href}/${state.wordNumber}`;
 		navigator.clipboard.writeText(
 			`${modeData.modes[$mode].name} Joserdle #${state.wordNumber} ${
 				failed(state) ? "X" : state.guesses
-			}/${state.board.words.length}\n\n${state.board.state
+			}/${state.board.words.length}\n\n ${state.board.state
 				.slice(0, state.guesses)
 				.map((r) => r.join(""))
-				.join("\n")}\n\nhttps://joserdle.com`
+				.join("\n ")}\n${gameLink}`
 		);
 		toaster.pop("Copied");
 	}
