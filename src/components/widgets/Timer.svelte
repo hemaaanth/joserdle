@@ -10,7 +10,7 @@
 
 	let ms = 1000;
 
-	let countDown: number;
+	let countDown: ReturnType<typeof setInterval>;
 
 	export function reset(m: GameMode) {
 		clearInterval(countDown);

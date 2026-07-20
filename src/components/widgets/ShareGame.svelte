@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getContext } from "svelte";
-	import { GameMode } from "../../enums";
-	import { mode } from "../../stores";
+	import { language, mode } from "../../stores";
+	import { formatGameUrl } from "../../language";
 	import { modeData } from "../../utils";
 	import GameIcon from "../GameIcon.svelte";
 	import type Toaster from "./Toaster.svelte";
@@ -12,7 +12,9 @@
 
 	function share() {
 		toaster.pop("Copied");
-		navigator.clipboard.writeText(`${window.location.href}/${wordNumber}`);
+		navigator.clipboard.writeText(
+			formatGameUrl(window.location.href, $language, $mode, wordNumber)
+		);
 	}
 </script>
 

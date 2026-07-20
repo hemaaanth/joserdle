@@ -3,21 +3,26 @@ name: Publish
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   deploy:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: install node v16
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v6
+      - name: install node v24
+        uses: actions/setup-node@v6
         with:
-          node-version: 16
+          node-version: 24
       - name: install dependencies
         run: npm i
+      - name: test
+        run: npm test
       - name: compile
         run: npm run build
       - name: deploy to pages branch
+        if: github.event_name == 'push'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

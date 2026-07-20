@@ -30,12 +30,13 @@
 		GameState,
 		seededRandomInt,
 		LetterStates,
-		words,
 		Stats,
 	} from "../utils";
-	import { letterStates, settings, mode } from "../stores";
+	import { language, letterStates, settings, mode } from "../stores";
+	import { gameStorageKey, supportsDefinitions, type WordList } from "../language";
 
 	export let word: string;
+	export let wordList: WordList;
 	export let stats: Stats;
 	export let game: GameState;
 	export let toaster: Toaster;
@@ -59,7 +60,7 @@
 		if (game.latestWord.length !== COLS) {
 			toaster.pop("Not enough letters");
 			board.shake(game.guesses);
-		} else if (words.contains(game.latestWord)) {
+		} else if (wordList.contains(game.latestWord)) {
 			if (game.guesses > 0) {
 				const hm = game.checkHardMode();
 				if ($settings.hard[$mode]) {
@@ -101,7 +102,7 @@
 		if (!modeData.modes[$mode].historical) {
 			stats.addWin(game.guesses, modeData.modes[$mode]);
 			stats = stats;
-			localStorage.setItem(`stats-${$mode}`, stats.toString());
+			localStorage.setItem(gameStorageKey("stats", $language, $mode), stats.toString());
 		}
 	}
 
@@ -111,7 +112,7 @@
 		if (!modeData.modes[$mode].historical) {
 			stats.addLoss(modeData.modes[$mode]);
 			stats = stats;
-			localStorage.setItem(`stats-${$mode}`, stats.toString());
+			localStorage.setItem(gameStorageKey("stats", $language, $mode), stats.toString());
 		}
 	}
 
@@ -124,8 +125,13 @@
 	function reload() {
 		modeData.modes[$mode].historical = false;
 		modeData.modes[$mode].seed = newSeed($mode);
-		game = new GameState($mode, localStorage.getItem(`state-${$mode}`));
-		word = words.words[seededRandomInt(0, words.words.length, modeData.modes[$mode].seed)];
+		game = new GameState(
+			$mode,
+			localStorage.getItem(gameStorageKey("state", $language, $mode))
+		);
+		word = wordList.words[
+			seededRandomInt(0, wordList.words.length, modeData.modes[$mode].seed)
+		];
 		$letterStates = new LetterStates();
 		showStats = false;
 		showRefresh = false;
@@ -174,6 +180,7 @@
 		tutorial={$settings.tutorial === 1}
 		on:closeTutPopUp|once={() => ($settings.tutorial = 0)}
 		board={game.board}
+		{wordList}
 		guesses={game.guesses}
 		icon={modeData.modes[$mode].icon}
 		on:swipe={onSwipe}
@@ -220,7 +227,11 @@
 	</Separator>
 	<ShareGame wordNumber={game.wordNumber} />
 	{#if !game.active}
-		<Definition {word} alternates={2} />
+		{#if supportsDefinitions($language)}
+			<Definition {word} alternates={2} />
+		{:else}
+			<div>Your word was <strong>{word}</strong>.</div>
+		{/if}
 	{:else}
 		<!-- Fade with delay is to prevent a bright red button from appearing as soon as refresh is pressed -->
 		<div

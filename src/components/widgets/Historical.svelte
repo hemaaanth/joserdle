@@ -3,8 +3,9 @@
 	import { custom_event } from "svelte/internal";
 	import type { Toaster } from ".";
 	import { GameMode } from "../../enums";
-	import { mode } from "../../stores";
-	import { getWordNumber, modeData, newSeed } from "../../utils";
+	import { Language, historicalSeed, parseHistoricalGameLink } from "../../language";
+	import { language, mode } from "../../stores";
+	import { getWordNumber, modeData } from "../../utils";
 
 	export let showSettings: boolean;
 
@@ -16,6 +17,7 @@
 	let linkValue = "";
 	let numValue = "";
 	let linkMode: GameMode;
+	let linkLanguage: Language;
 	let newWordNum: number;
 
 	function reset() {
@@ -34,29 +36,23 @@
 	}
 
 	function validateLink() {
-		const data = linkValue
-			.slice(linkValue.indexOf("#") + 1)
-			.toLowerCase()
-			.split("/");
-		if (data.length !== 2) return false;
-		if (!(data[0] in GameMode)) return false;
-		if (!validateNumber(+data[1], getWordNumber(GameMode[data[0]], true))) {
-			return false;
-		}
-		linkMode = GameMode[data[0]];
+		const route = parseHistoricalGameLink(linkValue, (gameMode) => getWordNumber(gameMode, true));
+		if (!route?.wordNumber) return false;
+		linkLanguage = route.language;
+		linkMode = route.mode;
+		newWordNum = route.wordNumber;
 		return true;
 	}
 
 	function submit(e: MouseEvent | KeyboardEvent) {
 		if (!validLink && !validNumber) return;
 		const newMode = validNumber ? $mode : linkMode;
+		const newLanguage = validNumber ? $language : linkLanguage;
 		const currentModeData = modeData.modes[newMode];
 
 		currentModeData.historical = true;
-		currentModeData.seed = newSeed(
-			$mode,
-			(newWordNum - 1) * currentModeData.unit + currentModeData.start
-		);
+		currentModeData.seed = historicalSeed(currentModeData.start, currentModeData.unit, newWordNum);
+		language.set(newLanguage);
 		mode.set(newMode, true);
 
 		e.currentTarget.dispatchEvent(custom_event("close", null, { bubbles: true }));
