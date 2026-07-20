@@ -33,7 +33,7 @@
 		Stats,
 	} from "../utils";
 	import { language, letterStates, settings, mode } from "../stores";
-	import { gameStorageKey, type WordList } from "../language";
+	import { gameStorageKey, supportsDefinitions, type WordList } from "../language";
 
 	export let word: string;
 	export let wordList: WordList;
@@ -227,7 +227,11 @@
 	</Separator>
 	<ShareGame wordNumber={game.wordNumber} />
 	{#if !game.active}
-		<Definition {word} alternates={2} />
+		{#if supportsDefinitions($language)}
+			<Definition {word} alternates={2} />
+		{:else}
+			<div>Your word was <strong>{word}</strong>.</div>
+		{/if}
 	{:else}
 		<!-- Fade with delay is to prevent a bright red button from appearing as soon as refresh is pressed -->
 		<div

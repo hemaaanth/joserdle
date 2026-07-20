@@ -8,8 +8,11 @@ import {
 	formatGameHash,
 	formatGameUrl,
 	gameStorageKey,
+	historicalSeed,
 	normalizeFrenchWord,
 	parseGameHash,
+	parseHistoricalGameLink,
+	supportsDefinitions,
 	wordListFor,
 } from "./language";
 
@@ -53,9 +56,35 @@ describe("language routes", () => {
 			"https://example.com/joserdle/#hourly/7"
 		);
 	});
+
+	test("maps a historical word number to its exact seed without timezone rounding", () => {
+		assert.equal(historicalSeed(1_000, 50, 12), 1_550);
+	});
+
+	test("accepts generated English and French links in the historical-game flow", () => {
+		const currentWordNumber = (mode: GameMode) => mode === GameMode.daily ? 100 : 200;
+		assert.deepEqual(
+			parseHistoricalGameLink("https://joserdle.com/#fr/daily/12", currentWordNumber),
+			{ language: Language.French, mode: GameMode.daily, wordNumber: 12 }
+		);
+		assert.deepEqual(
+			parseHistoricalGameLink("https://joserdle.com/#hourly/17", currentWordNumber),
+			{ language: Language.English, mode: GameMode.hourly, wordNumber: 17 }
+		);
+		assert.equal(
+			parseHistoricalGameLink("https://joserdle.com/#fr/daily/100", currentWordNumber),
+			null
+		);
+		assert.equal(parseHistoricalGameLink("https://joserdle.com/#fr/nope/12", currentWordNumber), null);
+	});
 });
 
 describe("language-specific persistence", () => {
+	test("uses definitions only where the configured dictionary source supports the language", () => {
+		assert.equal(supportsDefinitions(Language.English), true);
+		assert.equal(supportsDefinitions(Language.French), false);
+	});
+
 	test("preserves existing English keys and isolates French state", () => {
 		assert.equal(gameStorageKey("stats", Language.English, GameMode.daily), "stats-0");
 		assert.equal(gameStorageKey("state", Language.English, GameMode.hourly), "state-1");

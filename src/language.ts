@@ -36,6 +36,10 @@ export function normalizeFrenchWord(word: string) {
 		.replace(/[\u0300-\u036f]/g, "");
 }
 
+export function supportsDefinitions(language: Language) {
+	return language === Language.English;
+}
+
 export function wordListFor(language: Language): WordList {
 	return language === Language.French ? frenchWords : englishWords;
 }
@@ -75,6 +79,24 @@ export function parseGameHash(
 	return wordNumber && wordNumber > 0
 		? { language, mode, wordNumber }
 		: { language, mode };
+}
+
+export function historicalSeed(start: number, unit: number, wordNumber: number) {
+	return start + (wordNumber - 1) * unit;
+}
+
+export function parseHistoricalGameLink(
+	link: string,
+	currentWordNumber: (mode: GameMode) => number
+): GameRoute | null {
+	const hashIndex = link.indexOf("#");
+	if (hashIndex < 0) return null;
+	const hash = link.slice(hashIndex).toLowerCase();
+	const route = parseGameHash(hash, GameMode.daily, Language.English);
+	if (!route.wordNumber || hash !== formatGameHash(route.language, route.mode, route.wordNumber)) {
+		return null;
+	}
+	return route.wordNumber < currentWordNumber(route.mode) ? route : null;
 }
 
 export function formatGameHash(language: Language, mode: GameMode, wordNumber?: number) {
