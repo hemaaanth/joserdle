@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type Toaster from "./Toaster.svelte";
 
-	import { mode } from "../../stores";
+	import { language, mode } from "../../stores";
+	import { formatGameUrl } from "../../language";
 	import { failed, modeData, GameState } from "../../utils";
 	import { getContext } from "svelte";
 
@@ -9,7 +10,7 @@
 	const toaster = getContext<Toaster>("toaster");
 
 	function copyStats() {
-		const gameLink = `${window.location.href}/${state.wordNumber}`;
+		const gameLink = formatGameUrl(window.location.href, $language, $mode, state.wordNumber);
 		navigator.clipboard.writeText(
 			`${modeData.modes[$mode].name} Joserdle #${state.wordNumber} ${
 				failed(state) ? "X" : state.guesses

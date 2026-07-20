@@ -1,16 +1,8 @@
 import seedRandom from "seedrandom";
 import { GameMode, ms } from "./enums";
-import wordList from "./words_5";
 
 export const ROWS = 6;
 export const COLS = 5;
-
-export const words = {
-	...wordList,
-	contains: (word: string) => {
-		return wordList.words.includes(word) || wordList.valid.includes(word);
-	},
-};
 
 class Tile {
 	public value: string;

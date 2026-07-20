@@ -19,6 +19,8 @@ Hosted on GitHub pages [here](https://mikhad.github.io/wordle/).
 - Right clicking a submitted word on the board will tell you how many possible words could have been played there, taking all previous information into account.
 - Right clicking the row below the last submitted word will tell you how many possibilities there are taking all previous information into account.
 - The game mode is reflected in the url, allowing you to share a game mode directly.
+- English and French are separate word languages, independent from Daily, Hourly, and Infinite modes. Switch with the EN/FR control in Settings. French answers are entered without accents (for example, `ECOLE` and `FORET`).
+- The French word language includes 1,000 possible answers and 5,224 additional accepted guesses.
 - You can share a link to a specific game number, allowing you to play historical games, and share specific rounds of the faster changing modes with your friends.
 - You can access previous games from the settings menu by inputting a game number or link.
 - Service worker which allows the game to be easily downloaded as a progressive web app and run offline.

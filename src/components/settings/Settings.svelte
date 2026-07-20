@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { createEventDispatcher, getContext, onMount } from "svelte";
 
-	import { mode, settings } from "../../stores";
+	import { language, mode, settings } from "../../stores";
+	import { Language } from "../../language";
 	import { modeData, GameState } from "../../utils";
 	import type { Toaster } from "../widgets";
 	import Setting from "./Setting.svelte";
@@ -53,6 +54,28 @@
 			<svelte:fragment slot="title">Color Blind Mode</svelte:fragment>
 			<svelte:fragment slot="desc">High contrast colors</svelte:fragment>
 		</Setting>
+		<Setting type="custom" value={$language}>
+			<svelte:fragment slot="title">Word Language</svelte:fragment>
+			<svelte:fragment slot="desc">
+				French words use five unaccented letters (for example, ECOLE)
+			</svelte:fragment>
+			<svelte:fragment slot="custom">
+				<div class="language-toggle" role="group" aria-label="Word language">
+					<button
+						type="button"
+						class:active={$language === Language.English}
+						aria-pressed={$language === Language.English}
+						on:click={() => ($language = Language.English)}>EN</button
+					>
+					<button
+						type="button"
+						class:active={$language === Language.French}
+						aria-pressed={$language === Language.French}
+						on:click={() => ($language = Language.French)}>FR</button
+					>
+				</div>
+			</svelte:fragment>
+		</Setting>
 		<Setting type="dropdown" bind:value={$mode} options={modeData.modes.map((e) => e.name)}>
 			<svelte:fragment slot="title">Game Mode</svelte:fragment>
 			<svelte:fragment slot="desc">
@@ -102,5 +125,31 @@
 		height: 2rem;
 		fill: var(--fg-secondary);
 		cursor: pointer;
+	}
+	.language-toggle {
+		display: flex;
+		padding: 2px;
+		border: 1px solid var(--border-primary);
+		border-radius: 999px;
+		background: var(--bg-secondary);
+	}
+	.language-toggle button {
+		min-width: 2.25rem;
+		padding: 0.3rem 0.55rem;
+		border: 0;
+		border-radius: 999px;
+		background: transparent;
+		color: var(--fg-secondary);
+		font: inherit;
+		font-weight: 700;
+		cursor: pointer;
+	}
+	.language-toggle button.active {
+		background: var(--color-correct);
+		color: white;
+	}
+	.language-toggle button:focus-visible {
+		outline: 2px solid var(--fg-primary);
+		outline-offset: 2px;
 	}
 </style>

@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 import type { GameMode } from "./enums";
+import { Language } from "./language";
 import { Settings, LetterStates } from "./utils";
 
 /**
@@ -84,6 +85,8 @@ class Writable<T> {
 }
 
 export const mode = new Writable<GameMode>();
+
+export const language = new Writable<Language>(Language.English);
 
 export const letterStates = writable(new LetterStates());
 

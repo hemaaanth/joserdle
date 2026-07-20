@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { getRowData, words } from "../../utils";
+	import { getRowData } from "../../utils";
+	import type { WordList } from "../../language";
 
 	import Row from "./Row.svelte";
 	import ContextMenu from "../widgets/ContextMenu.svelte";
@@ -8,6 +9,7 @@
 
 	export let value: string[];
 	export let board: GameBoard;
+	export let wordList: WordList;
 	export let guesses: number;
 	export let icon: string;
 	export let tutorial: boolean;
@@ -38,8 +40,8 @@
 			word = guesses > num ? val : "";
 
 			const match = getRowData(num, board);
-			possibleSolutions = words.words.filter((w) => match(w)).length;
-			validGuesses = possibleSolutions + words.valid.filter((w) => match(w)).length;
+			possibleSolutions = wordList.words.filter((w) => match(w)).length;
+			validGuesses = possibleSolutions + wordList.valid.filter((w) => match(w)).length;
 		}
 	}
 
