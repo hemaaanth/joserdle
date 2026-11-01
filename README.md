@@ -65,3 +65,19 @@ This information cannot be linked back to individual users. It is for my own per
 [![Stargazers over time](https://starchart.cc/MikhaD/wordle.svg?variant=adaptive)](https://starchart.cc/MikhaD/wordle)
 
                     
+
+## Kiosk mode
+
+Turn on **Settings → Kiosk Mode** for a shared tablet. The setting is saved on that browser.
+
+- **Full screen** enters or exits browser full screen when supported.
+- **Reset game** clears the board and keyboard clues. Stats, language, mode, and settings are kept. Daily and Hourly replay the current scheduled word; Infinite chooses from the current time seed.
+- After a win, the results screen stays visible for one second, then the game resets. Losses stay visible until Reset game or the idle reset.
+- After 15 minutes without a tap, touch, or key press, the game resets and closes open dialogs. It also checks elapsed time when a suspended tab becomes visible again.
+- Kiosk mode requests a screen wake lock, retries when the page becomes visible or receives input, and releases the lock when kiosk mode is turned off. The status below the controls shows whether keep awake is active.
+
+### Fire tablets and keep awake
+
+Keep awake uses the browser's [Screen Wake Lock API](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API). Serve the game over HTTPS (localhost also works for development). The page must stay visible, and browser permissions or battery saving can block or release the lock.
+
+Fire OS/Silk versions vary. The app checks for the API on the actual tablet and shows an unavailable or blocked message when necessary. A website cannot force a wake lock on an unsupported browser. In that case, use a tablet browser or kiosk app with a native keep-screen-on setting. Full screen alone does not keep the screen awake. Actual Fire tablet hardware still needs to be checked.

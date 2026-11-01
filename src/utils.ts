@@ -322,6 +322,7 @@ export class Settings extends Storable {
 	public hard = new Array(modeData.modes.length).fill(false);
 	public dark = true;
 	public colorblind = false;
+	public kiosk = false;
 	public tutorial: 0 | 1 | 2 | 3 = 3;
 
 	constructor(settings?: string) {
@@ -331,6 +332,7 @@ export class Settings extends Storable {
 			this.hard = parsed.hard;
 			this.dark = parsed.dark;
 			this.colorblind = parsed.colorblind;
+			this.kiosk = parsed.kiosk === true;
 			this.tutorial = parsed.tutorial;
 		}
 	}

@@ -1,17 +1,21 @@
 <script lang="ts">
 	export let value: boolean;
 	export let disabled = false;
+	export let label = "Setting";
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<div on:click={(e) => !disabled && (value = !value)} class:checked={value} {disabled} />
+<button type="button" role="switch" aria-label={label} aria-checked={value}
+	on:click={() => (value = !value)} class:checked={value} {disabled} />
 
 <style lang="scss">
-	div[disabled="true"] {
+	button:disabled {
 		opacity: 0.5;
 		cursor: unset;
 	}
-	div {
+	button {
+		padding: 0;
+		border: 0;
+		flex-shrink: 0;
 		width: 32px;
 		height: 20px;
 		border-radius: 10px;
@@ -22,6 +26,7 @@
 		&::before {
 			content: "";
 			position: absolute;
+			top: 0;
 			width: 16px;
 			aspect-ratio: 1;
 			background: white;
@@ -31,6 +36,7 @@
 			transition: left 0.3s ease;
 		}
 	}
+	button:focus-visible { outline: 2px solid var(--fg-primary); outline-offset: 3px; }
 	.checked {
 		background: var(--color-correct);
 		&::before {

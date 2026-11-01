@@ -1,25 +1,24 @@
 <script lang="ts">
 	import Switch from "./Switch.svelte";
 	import DropDown from "./DropDown.svelte";
+	let title: HTMLElement;
 	export let value: any;
 	export let type: SettingType;
 	export let options: (string | number)[] = [];
 	export let disabled = false;
-	const types = {
-		switch: Switch,
-		dropdown: DropDown,
-	};
 </script>
 
 <div class="setting">
 	<div>
-		<div class="title"><slot name="title" /></div>
+		<div class="title" bind:this={title}><slot name="title" /></div>
 		<div class="desc"><slot name="desc" /></div>
 	</div>
 	{#if type === "custom"}
 		<slot name="custom" />
+	{:else if type === "switch"}
+		<Switch bind:value {disabled} label={title?.textContent || "Setting"} />
 	{:else}
-		<svelte:component this={types[type]} bind:value {options} {disabled} />
+		<DropDown bind:value {options} {disabled} />
 	{/if}
 </div>
 

@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { fade } from "svelte/transition";
 	import Header from "./Header.svelte";
+	import Kiosk from "./Kiosk.svelte";
 	import { Board } from "./board";
 	import Keyboard from "./keyboard";
 	import Modal from "./Modal.svelte";
-	import { getContext, onMount, setContext } from "svelte";
+	import { getContext, onDestroy, onMount, setContext } from "svelte";
 	import Settings from "./settings";
 	import {
 		Share,
@@ -33,7 +34,7 @@
 		Stats,
 	} from "../utils";
 	import { language, letterStates, settings, mode } from "../stores";
-	import { gameStorageKey, supportsDefinitions, type WordList } from "../language";
+	import { formatGameHash, gameStorageKey, supportsDefinitions, type WordList } from "../language";
 
 	export let word: string;
 	export let wordList: WordList;
@@ -91,14 +92,61 @@
 		}
 	}
 
+	let roundTimers: ReturnType<typeof setTimeout>[] = [];
+	function clearRoundTimers() {
+		roundTimers.forEach(clearTimeout);
+		roundTimers = [];
+	}
+	function afterRound(callback: () => void, timeout: number) {
+		const round = game;
+		roundTimers.push(setTimeout(() => {
+			if (game === round) callback();
+		}, timeout));
+	}
+	onDestroy(clearRoundTimers);
+	// A mode or language change must cancel callbacks from the previous board.
+	let previousGame: GameState;
+	let boardVersion = 0;
+	$: if (game !== previousGame) {
+		clearRoundTimers();
+		clearTimeout(kioskResetTimer);
+		kioskResetTimer = undefined;
+		previousGame = game;
+		boardVersion += 1;
+	}
+	let kioskResetTimer: ReturnType<typeof setTimeout>;
+	$: {
+		if (!$settings.kiosk || game.active) {
+			clearTimeout(kioskResetTimer);
+			kioskResetTimer = undefined;
+		} else if (showStats && game.lastWord === word && !kioskResetTimer) {
+			kioskResetTimer = setTimeout(resetGame, 1000);
+		}
+	}
+	onDestroy(() => clearTimeout(kioskResetTimer));
+
+	function resetGame() {
+		clearRoundTimers();
+		clearTimeout(kioskResetTimer);
+		showTutorial = showSettings = showStats = showHistorical = showRefresh = false;
+		$settings.tutorial = 0;
+		modeData.modes[$mode].historical = false;
+		modeData.modes[$mode].seed = newSeed($mode);
+		game = new GameState($mode);
+		word = wordList.words[seededRandomInt(0, wordList.words.length, modeData.modes[$mode].seed)];
+		$letterStates = new LetterStates();
+		window.location.hash = formatGameHash($language, $mode);
+		timer?.reset($mode);
+	}
+
 	function win() {
 		board.bounce(game.guesses - 1);
 		game.active = false;
-		setTimeout(
+		afterRound(
 			() => toaster.pop(PRAISE[game.guesses - 1]),
 			DELAY_INCREMENT * COLS + DELAY_INCREMENT
 		);
-		setTimeout(setShowStatsTrue, delay * 1.4);
+		afterRound(setShowStatsTrue, delay * 1.4);
 		if (!modeData.modes[$mode].historical) {
 			stats.addWin(game.guesses, modeData.modes[$mode]);
 			stats = stats;
@@ -108,7 +156,7 @@
 
 	function lose() {
 		game.active = false;
-		setTimeout(setShowStatsTrue, delay);
+		afterRound(setShowStatsTrue, delay);
 		if (!modeData.modes[$mode].historical) {
 			stats.addLoss(modeData.modes[$mode]);
 			stats = stats;
@@ -118,11 +166,13 @@
 
 	function concede() {
 		showSettings = false;
-		setTimeout(setShowStatsTrue, DELAY_INCREMENT);
+		afterRound(setShowStatsTrue, DELAY_INCREMENT);
 		lose();
 	}
 
 	function reload() {
+		if ($settings.kiosk) return resetGame();
+		clearRoundTimers();
 		modeData.modes[$mode].historical = false;
 		modeData.modes[$mode].seed = newSeed($mode);
 		game = new GameState(
@@ -156,7 +206,7 @@
 	}
 
 	onMount(() => {
-		if (!game.active) setTimeout(setShowStatsTrue, delay);
+		if (!game.active) afterRound(setShowStatsTrue, delay);
 	});
 	// $: toaster.pop(word);
 </script>
@@ -164,27 +214,34 @@
 <svelte:body on:click={board.hideCtx} on:contextmenu={board.hideCtx} />
 
 <main class:guesses={game.guesses !== 0} style="--rows: {ROWS}; --cols: {COLS}">
-	<Header
-		bind:showRefresh
-		tutorial={$settings.tutorial === 2}
-		on:closeTutPopUp|once={() => ($settings.tutorial = 1)}
-		showStats={stats.played > 0 || (modeData.modes[$mode].historical && !game.active)}
-		on:stats={() => (showStats = true)}
-		on:tutorial={() => (showTutorial = true)}
-		on:settings={() => (showSettings = true)}
-		on:reload={reload}
-	/>
-	<Board
-		bind:this={board}
-		bind:value={game.board.words}
-		tutorial={$settings.tutorial === 1}
-		on:closeTutPopUp|once={() => ($settings.tutorial = 0)}
-		board={game.board}
-		{wordList}
-		guesses={game.guesses}
-		icon={modeData.modes[$mode].icon}
-		on:swipe={onSwipe}
-	/>
+	<div class="game-header">
+		<Header
+			bind:showRefresh
+			tutorial={$settings.tutorial === 2}
+			on:closeTutPopUp|once={() => ($settings.tutorial = 1)}
+			showStats={stats.played > 0 || (modeData.modes[$mode].historical && !game.active)}
+			on:stats={() => (showStats = true)}
+			on:tutorial={() => (showTutorial = true)}
+			on:settings={() => (showSettings = true)}
+			on:reload={reload}
+		/>
+		{#if $settings.kiosk}
+			<Kiosk on:reset={resetGame} />
+		{/if}
+	</div>
+	{#key boardVersion}
+		<Board
+			bind:this={board}
+			bind:value={game.board.words}
+			tutorial={$settings.tutorial === 1}
+			on:closeTutPopUp|once={() => ($settings.tutorial = 0)}
+			board={game.board}
+			{wordList}
+			guesses={game.guesses}
+			icon={modeData.modes[$mode].icon}
+			on:swipe={onSwipe}
+		/>
+	{/key}
 	<Keyboard
 		on:keystroke={() => {
 			if ($settings.tutorial) $settings.tutorial = 0;
@@ -197,7 +254,7 @@
 			showStats = false;
 			showSettings = false;
 		}}
-		disabled={!game.active || $settings.tutorial === 3 || showHistorical}
+		disabled={!game.active || $settings.tutorial === 3 || showHistorical || showSettings || showStats || showTutorial}
 	/>
 </main>
 
@@ -210,6 +267,9 @@
 </Modal>
 
 <Modal bind:visible={showStats}>
+	{#if $settings.kiosk}
+		<button type="button" class="button" on:click={resetGame}>Reset game</button>
+	{/if}
 	{#if modeData.modes[$mode].historical}
 		<h2 class="historical">Statistics not available for historical games</h2>
 	{:else}
@@ -247,6 +307,9 @@
 
 <Modal fullscreen={true} bind:visible={showSettings}>
 	<Settings state={game} on:historical={() => (showHistorical = true)} />
+	{#if $settings.kiosk}
+		<button type="button" class="button" on:click={resetGame}>Reset game</button>
+	{/if}
 	{#if game.active}
 		<div class="button concede" on:click={concede} on:keydown={concede}>give up</div>
 	{/if}
@@ -283,11 +346,20 @@
 		margin: auto;
 		position: relative;
 	}
+	.game-header {
+		width: 100%;
+		flex-shrink: 0;
+	}
 	.historical {
 		text-align: center;
 		margin-top: 10px;
 		padding: 0 20px;
 		text-transform: uppercase;
+	}
+	button.button {
+		border: 0;
+		background: var(--color-correct);
+		font: inherit;
 	}
 	.concede {
 		background-color: var(--red);

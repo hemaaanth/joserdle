@@ -47,6 +47,10 @@
 				</svelte:fragment>
 			</Setting>
 		</div>
+		<Setting type="switch" bind:value={$settings.kiosk}>
+			<svelte:fragment slot="title">Kiosk Mode</svelte:fragment>
+			<svelte:fragment slot="desc">Full screen and keep awake controls. Reset one second after winning or after 15 minutes without input. Stats are kept.</svelte:fragment>
+		</Setting>
 		<Setting type="switch" bind:value={$settings.dark}>
 			<svelte:fragment slot="title">Dark Theme</svelte:fragment>
 		</Setting>
