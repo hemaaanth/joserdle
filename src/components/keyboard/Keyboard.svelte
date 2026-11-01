@@ -6,6 +6,7 @@
 
 	export let value = "";
 	export let disabled = false;
+	export let enterLabel = "ENTER";
 	let preventChange = true;
 
 	const dispatch = createEventDispatcher();
@@ -64,14 +65,6 @@
 		{/each}
 	</div>
 	<div class="row">
-		<Key letter="ENTER" on:keystroke={() => !disabled && dispatch("submitWord")} />
-		{#each keys[2] as letter}
-			<Key
-				{letter}
-				on:keystroke={(e) => appendValue(e.detail)}
-				state={$letterStates[letter]}
-			/>
-		{/each}
 		<Key letter="" on:keystroke={backspaceValue}>
 			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
 				<path
@@ -79,6 +72,14 @@
 				/>
 			</svg>
 		</Key>
+		{#each keys[2] as letter}
+			<Key
+				{letter}
+				on:keystroke={(e) => appendValue(e.detail)}
+				state={$letterStates[letter]}
+			/>
+		{/each}
+		<Key letter={enterLabel} on:keystroke={() => !disabled && dispatch("submitWord")} />
 	</div>
 </div>
 
@@ -88,21 +89,21 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		margin-bottom: 2px;
+		gap: var(--key-gap);
 	}
 	.row {
 		touch-action: manipulation;
 		width: 100%;
 		display: flex;
-		margin: 0 auto 8px;
-		padding: 0 8px;
-		gap: 6px;
+		margin: 0;
+		padding: 0;
+		gap: var(--key-gap);
 	}
 	.row:nth-of-type(2) {
-		padding: 0 30px;
+		padding: 0 5%;
 	}
 	svg {
 		fill: var(--fg-primary);
-		width: 24px;
+		width: clamp(20px, 2.5vh, 36px);
 	}
 </style>

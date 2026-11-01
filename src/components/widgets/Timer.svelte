@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from "svelte";
+	import { createEventDispatcher, onDestroy } from "svelte";
 
 	import type { GameMode } from "../../enums";
 	import { ms as MS } from "../../enums";
@@ -25,6 +25,7 @@
 		}, MS.SECOND);
 	}
 	$: reset($mode);
+	onDestroy(() => clearInterval(countDown));
 </script>
 
 <h3>Next JOSERDLE</h3>

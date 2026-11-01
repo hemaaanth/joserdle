@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { IdleReset, KIOSK_IDLE_MS, ScreenAwake, type ScreenLock } from "./kiosk";
-import { Settings, GameState, LetterStates } from "./utils";
+import { IdleReset, KIOSK_IDLE_MS, ScreenAwake, newKioskGame, KIOSK_MODE, KIOSK_WORD_NUMBER, KIOSK_STATE_KEY, kioskWord, kioskWordList, kioskLanguage, kioskCopy, type ScreenLock } from "./kiosk";
+import { Settings, GameState, LetterStates, modeData, getWordNumber, seededRandomInt } from "./utils";
 import { GameMode } from "./enums";
+import { Language, wordListFor, historicalSeed, gameStorageKey } from "./language";
 
 test("kiosk defaults off for existing settings and persists when enabled", () => {
 	assert.equal(new Settings().kiosk, false);
@@ -102,4 +103,56 @@ test("unsupported and denied wake locks report status without breaking gameplay"
 	assert.match(status, /unavailable/);
 	await new ScreenAwake({ async request() { throw new Error("denied"); } }, (s) => status = s).request();
 	assert.match(status, /blocked/);
+});
+
+
+test("kiosk always pins English Hourly #37896 and resets to the same answer", () => {
+	const original = { ...modeData.modes[KIOSK_MODE] };
+	try {
+		const old = newKioskGame();
+		const seed = historicalSeed(original.start, original.unit, KIOSK_WORD_NUMBER);
+		assert.equal(old.wordNumber, 37896);
+		assert.equal(getWordNumber(KIOSK_MODE), 37896);
+		assert.equal(old.time, seed);
+		assert.equal(modeData.modes[KIOSK_MODE].historical, true);
+		old.active = false;
+		old.guesses = 4;
+		assert.equal(newKioskGame(old.toString()).active, false);
+		modeData.modes[KIOSK_MODE].seed += 100000000;
+		const fresh = newKioskGame();
+		assert.equal(fresh.time, seed);
+		assert.equal(fresh.wordNumber, old.wordNumber);
+		assert.equal(fresh.active, true);
+		assert.equal(fresh.guesses, 0);
+		const words = wordListFor(Language.English).words;
+		assert.equal(words[seededRandomInt(0, words.length, fresh.time)], words[seededRandomInt(0, words.length, old.time)]);
+		assert.notEqual(KIOSK_STATE_KEY, gameStorageKey("state", Language.English, KIOSK_MODE, true));
+	} finally {
+		Object.assign(modeData.modes[KIOSK_MODE], original);
+	}
+});
+
+
+test("kiosk defaults to French and retains an explicit English choice", () => {
+	assert.equal(kioskLanguage(null), Language.French);
+	assert.equal(kioskLanguage("invalid"), Language.French);
+	assert.equal(kioskLanguage("fr"), Language.French);
+	assert.equal(kioskLanguage("en"), Language.English);
+});
+
+test("both kiosk languages keep the original answer and accept it as a guess", () => {
+	assert.equal(kioskWord(), "blimp");
+	for (const language of [Language.French, Language.English]) {
+		const list = kioskWordList(language);
+		assert.equal(list.contains(kioskWord()), true);
+		assert.equal(list.words.includes(kioskWord()), true);
+		assert.equal(list.contains("xxxxx"), false);
+		const copy = kioskCopy(language);
+		assert.equal(copy.title, copy.title.toUpperCase());
+	}
+	assert.equal(kioskWordList(Language.French).contains("ecole"), true);
+	assert.equal(kioskWordList(Language.English).contains("ecole"), false);
+	assert.equal(kioskWordList(Language.English).contains("cigar"), true);
+	assert.equal(kioskCopy(Language.French).return, "Retour");
+	assert.equal(kioskCopy(Language.English).return, "Return");
 });

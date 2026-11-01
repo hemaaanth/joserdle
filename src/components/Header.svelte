@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { createEventDispatcher, getContext } from "svelte";
 	import { scale, fade } from "svelte/transition";
-	import { mode } from "../stores";
+	import { mode, settings, language } from "../stores";
 	import { modeData, timeRemaining } from "../utils";
+	import { kioskCopy } from "../kiosk";
 	import GameIcon from "./GameIcon.svelte";
+	import Kiosk from "./Kiosk.svelte";
 	import type { Toaster } from "./widgets";
 
 	export let showStats: boolean;
@@ -13,6 +15,7 @@
 	export let toaster = getContext<Toaster>("toaster");
 
 	const dispatch = createEventDispatcher();
+	$: copy = kioskCopy($language);
 	mode.subscribe((m) => {
 		if (timeRemaining(modeData.modes[m]) > 0) {
 			showRefresh = false;
@@ -20,14 +23,17 @@
 	});
 </script>
 
-<header>
+<header class:kiosk={$settings.kiosk}>
 	<div class="icons">
 		<GameIcon onClick={() => dispatch("tutorial")}>
 			<path
 				d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"
 			/>
 		</GameIcon>
-		{#if showRefresh}
+		{#if $settings.kiosk}
+			<Kiosk on:reset={() => dispatch("reset")} />
+		{/if}
+		{#if showRefresh && !$settings.kiosk}
 			<GameIcon onClick={() => dispatch("reload")}>
 				<path
 					transition:fade={{ duration: 200 }}
@@ -39,15 +45,17 @@
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<h1
 		on:click|self={() => {
+			if ($settings.kiosk) return;
 			$mode = ($mode + 1) % modeData.modes.length;
 			toaster.pop(modeData.modes[$mode].name);
 		}}
 		on:contextmenu|preventDefault|self={() => {
+			if ($settings.kiosk) return;
 			$mode = ($mode - 1 + modeData.modes.length) % modeData.modes.length;
 			toaster.pop(modeData.modes[$mode].name);
 		}}
 	>
-		joserdle
+		{$settings.kiosk ? copy.title : "joserdle"}
 	</h1>
 	<div class="icons">
 		{#if showStats}
@@ -79,7 +87,7 @@
 
 <style lang="scss">
 	header {
-		--height: 51px;
+		--height: clamp(56px, 7vh, 96px);
 		position: relative;
 		font-weight: 700;
 		text-transform: uppercase;
@@ -92,7 +100,31 @@
 		height: var(--height);
 		position: relative;
 	}
+	.kiosk {
+		--height: clamp(64px, 8vh, 104px);
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		height: auto;
+		min-height: var(--height);
+	}
+	.kiosk .icons:last-of-type { justify-self: end; }
+	.kiosk h1 {
+		position: static;
+		transform: none;
+		width: 100%;
+		min-width: 0;
+		overflow-wrap: anywhere;
+		font-size: clamp(20px, min(3.5vw, 3.5vh), 38px);
+		padding: 0 12px;
+		line-height: 1.15;
+		text-transform: none;
+		letter-spacing: normal;
+		cursor: default;
+	}
 	.icons {
+		align-items: center;
+		flex-shrink: 0;
+		min-width: max-content;
 		height: 100%;
 		z-index: 1;
 		display: flex;
@@ -105,5 +137,10 @@
 		font-size: var(--fs-large);
 		cursor: pointer;
 		text-align: center;
+	}
+	@media (max-width: 700px) {
+		.kiosk { display: grid; grid-template-columns: 1fr auto; height: auto; padding: 4px 0 12px; row-gap: 4px; }
+		.kiosk h1 { grid-row: 2; grid-column: 1 / -1; font-size: clamp(20px, 5.5vw, 30px); }
+		.kiosk .icons:last-of-type { grid-row: 1; grid-column: 2; justify-self: end; }
 	}
 </style>

@@ -152,3 +152,6 @@ select {
 	background: var(--bg-secondary);
 	color: var(--fg-primary);
 }
+@supports (height: 100dvh) {
+	:root { height: 100dvh; }
+}

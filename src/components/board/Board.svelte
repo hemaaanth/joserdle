@@ -107,11 +107,10 @@
 	.board {
 		display: grid;
 		grid-template-rows: repeat(var(--rows), 1fr);
-		gap: 5.5px;
-		max-height: 420px;
-		flex-grow: 1;
-		aspect-ratio: var(--cols) / var(--rows);
-		padding: 10px;
+		gap: clamp(4px, 0.75vh, 12px);
+		width: var(--board-size);
+		height: calc(var(--board-size) * var(--rows) / var(--cols));
+		flex-shrink: 0;
 		position: relative;
 	}
 	svg {

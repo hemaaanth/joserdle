@@ -54,7 +54,7 @@
 		}
 	}
 	.tile {
-		font-size: 2rem;
+		font-size: clamp(20px, calc(var(--board-size) / 10), 96px);
 		font-weight: bold;
 		text-transform: uppercase;
 		position: relative;

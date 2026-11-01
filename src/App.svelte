@@ -20,7 +20,9 @@
 		type WordList,
 	} from "./language";
 	import { Toaster } from "./components/widgets";
-	import { setContext } from "svelte";
+	import { onDestroy, setContext } from "svelte";
+	import { get } from "svelte/store";
+	import { KIOSK_MODE, KIOSK_LANGUAGE_KEY, kioskLanguage, kioskWord, kioskWordList, KIOSK_STATE_KEY, newKioskGame, pinKioskGame } from "./kiosk";
 
 	document.title = "JOSERDLE";
 </script>
@@ -45,7 +47,9 @@
 	const fallbackLanguage = localStorage.getItem("language") === Language.French
 		? Language.French
 		: Language.English;
-	const route = parseGameHash(window.location.hash, fallbackMode, fallbackLanguage);
+	// The kiosk hash must not replace the user's normal saved selection on reload.
+	const route = parseGameHash(get(settings).kiosk ? "" : window.location.hash, fallbackMode, fallbackLanguage);
+	let kiosk = false;
 	let currentMode = route.mode;
 	let currentLanguage = route.language;
 
@@ -59,22 +63,24 @@
 	}
 
 	function loadGame() {
-		localStorage.setItem("mode", `${currentMode}`);
-		localStorage.setItem("language", currentLanguage);
-		wordList = wordListFor(currentLanguage);
+		if (!kiosk) {
+			localStorage.setItem("mode", `${currentMode}`);
+			localStorage.setItem("language", currentLanguage);
+		}
+		wordList = kiosk ? kioskWordList(currentLanguage) : wordListFor(currentLanguage);
 		stats = new Stats(
 			localStorage.getItem(gameStorageKey("stats", currentLanguage, currentMode)) || currentMode
 		);
-		word = wordList.words[
+		word = kiosk ? kioskWord() : wordList.words[
 			seededRandomInt(0, wordList.words.length, modeData.modes[currentMode].seed)
 		];
 		const historical = modeData.modes[currentMode].historical;
-		state = new GameState(
+		state = kiosk ? newKioskGame(localStorage.getItem(KIOSK_STATE_KEY)) : new GameState(
 			currentMode,
 			localStorage.getItem(gameStorageKey("state", currentLanguage, currentMode, historical))
 		);
 		window.location.hash = formatGameHash(
-			currentLanguage,
+			kiosk ? Language.English : currentLanguage,
 			currentMode,
 			historical ? state.wordNumber : undefined
 		);
@@ -88,13 +94,37 @@
 	});
 	language.subscribe((newLanguage) => {
 		currentLanguage = newLanguage;
+		if (kiosk) localStorage.setItem(KIOSK_LANGUAGE_KEY, newLanguage);
 		loadGame();
 	});
+
+	let normalSelection: { mode: GameMode; language: Language; hourlySeed: number; hourlyHistorical: boolean };
+	onDestroy(settings.subscribe((s) => {
+		if (s.kiosk === kiosk) return;
+		kiosk = s.kiosk;
+		if (kiosk) {
+			normalSelection = {
+				mode: currentMode, language: currentLanguage,
+				hourlySeed: modeData.modes[KIOSK_MODE].seed,
+				hourlyHistorical: modeData.modes[KIOSK_MODE].historical,
+			};
+			pinKioskGame();
+			currentMode = KIOSK_MODE;
+			currentLanguage = kioskLanguage(localStorage.getItem(KIOSK_LANGUAGE_KEY));
+		} else {
+			modeData.modes[KIOSK_MODE].seed = normalSelection.hourlySeed;
+			modeData.modes[KIOSK_MODE].historical = normalSelection.hourlyHistorical;
+			currentMode = normalSelection.mode;
+			currentLanguage = normalSelection.language;
+		}
+		mode.set(currentMode);
+		language.set(currentLanguage);
+	}));
 
 	$: if (state) saveState(state);
 	function saveState(gameState: GameState) {
 		localStorage.setItem(
-			gameStorageKey(
+			kiosk ? KIOSK_STATE_KEY : gameStorageKey(
 				"state",
 				currentLanguage,
 				currentMode,

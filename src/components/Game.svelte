@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { fade } from "svelte/transition";
 	import Header from "./Header.svelte";
-	import Kiosk from "./Kiosk.svelte";
+	import KioskComplete from "./KioskComplete.svelte";
+	import { newKioskGame, kioskWord, kioskCopy } from "../kiosk";
 	import { Board } from "./board";
 	import Keyboard from "./keyboard";
 	import Modal from "./Modal.svelte";
@@ -23,7 +24,6 @@
 	import {
 		contractNum,
 		DELAY_INCREMENT,
-		PRAISE,
 		modeData,
 		ROWS,
 		COLS,
@@ -34,7 +34,7 @@
 		Stats,
 	} from "../utils";
 	import { language, letterStates, settings, mode } from "../stores";
-	import { formatGameHash, gameStorageKey, supportsDefinitions, type WordList } from "../language";
+	import { Language, formatGameHash, gameStorageKey, supportsDefinitions, type WordList } from "../language";
 
 	export let word: string;
 	export let wordList: WordList;
@@ -48,7 +48,10 @@
 	// implement transition delay on keys
 	const delay = DELAY_INCREMENT * ROWS + 800;
 
-	let showTutorial = $settings.tutorial === 3;
+	let showTutorial = !$settings.kiosk && $settings.tutorial === 3;
+	$: if ($settings.kiosk) showTutorial = false;
+	$: copy = kioskCopy($settings.kiosk ? $language : Language.English);
+	$: document.title = $settings.kiosk ? copy.title : "JOSERDLE";
 	let showSettings = false;
 	let showStats = false;
 	let showHistorical = false;
@@ -56,10 +59,12 @@
 
 	let board: Board;
 	let timer: Timer;
+	let boardWidth = 0;
+	let boardHeight = 0;
 
 	function submitWord() {
 		if (game.latestWord.length !== COLS) {
-			toaster.pop("Not enough letters");
+			toaster.pop(copy.notEnough);
 			board.shake(game.guesses);
 		} else if (wordList.contains(game.latestWord)) {
 			if (game.guesses > 0) {
@@ -67,12 +72,12 @@
 				if ($settings.hard[$mode]) {
 					if (hm.type === "🟩") {
 						toaster.pop(
-							`${contractNum(hm.pos + 1)} letter must be ${hm.char.toUpperCase()}`
+							copy.mustMatch($settings.kiosk && $language === Language.French ? `${hm.pos + 1}` : contractNum(hm.pos + 1), hm.char.toUpperCase())
 						);
 						board.shake(game.guesses);
 						return;
 					} else if (hm.type === "🟨") {
-						toaster.pop(`Guess must contain ${hm.char.toUpperCase()}`);
+						toaster.pop(copy.mustContain(hm.char.toUpperCase()));
 						board.shake(game.guesses);
 						return;
 					}
@@ -87,7 +92,7 @@
 			if (game.lastWord === word) win();
 			else if (game.guesses === ROWS) lose();
 		} else {
-			toaster.pop("Not in word list");
+			toaster.pop(copy.notInList);
 			board.shake(game.guesses);
 		}
 	}
@@ -109,33 +114,24 @@
 	let boardVersion = 0;
 	$: if (game !== previousGame) {
 		clearRoundTimers();
-		clearTimeout(kioskResetTimer);
-		kioskResetTimer = undefined;
 		previousGame = game;
 		boardVersion += 1;
 	}
-	let kioskResetTimer: ReturnType<typeof setTimeout>;
-	$: {
-		if (!$settings.kiosk || game.active) {
-			clearTimeout(kioskResetTimer);
-			kioskResetTimer = undefined;
-		} else if (showStats && game.lastWord === word && !kioskResetTimer) {
-			kioskResetTimer = setTimeout(resetGame, 1000);
-		}
-	}
-	onDestroy(() => clearTimeout(kioskResetTimer));
 
 	function resetGame() {
 		clearRoundTimers();
-		clearTimeout(kioskResetTimer);
 		showTutorial = showSettings = showStats = showHistorical = showRefresh = false;
 		$settings.tutorial = 0;
-		modeData.modes[$mode].historical = false;
-		modeData.modes[$mode].seed = newSeed($mode);
-		game = new GameState($mode);
-		word = wordList.words[seededRandomInt(0, wordList.words.length, modeData.modes[$mode].seed)];
+		if ($settings.kiosk) {
+			game = newKioskGame();
+		} else {
+			modeData.modes[$mode].historical = false;
+			modeData.modes[$mode].seed = newSeed($mode);
+			game = new GameState($mode);
+		}
+		word = $settings.kiosk ? kioskWord() : wordList.words[seededRandomInt(0, wordList.words.length, modeData.modes[$mode].seed)];
 		$letterStates = new LetterStates();
-		window.location.hash = formatGameHash($language, $mode);
+		window.location.hash = formatGameHash($settings.kiosk ? Language.English : $language, $mode, $settings.kiosk ? game.wordNumber : undefined);
 		timer?.reset($mode);
 	}
 
@@ -143,7 +139,7 @@
 		board.bounce(game.guesses - 1);
 		game.active = false;
 		afterRound(
-			() => toaster.pop(PRAISE[game.guesses - 1]),
+			() => toaster.pop(copy.praise[game.guesses - 1]),
 			DELAY_INCREMENT * COLS + DELAY_INCREMENT
 		);
 		afterRound(setShowStatsTrue, delay * 1.4);
@@ -193,6 +189,7 @@
 	}
 
 	function onSwipe(e: Swipe) {
+		if ($settings.kiosk) return;
 		switch (e.detail.direction) {
 			case "left":
 				$mode = ($mode + 1) % modeData.modes.length;
@@ -213,36 +210,37 @@
 
 <svelte:body on:click={board.hideCtx} on:contextmenu={board.hideCtx} />
 
-<main class:guesses={game.guesses !== 0} style="--rows: {ROWS}; --cols: {COLS}">
+<main class:guesses={game.guesses !== 0} style="--rows: {ROWS}; --cols: {COLS}; --board-size: {Math.min(boardWidth, boardHeight * COLS / ROWS)}px">
 	<div class="game-header">
 		<Header
 			bind:showRefresh
-			tutorial={$settings.tutorial === 2}
+			tutorial={!$settings.kiosk && $settings.tutorial === 2}
 			on:closeTutPopUp|once={() => ($settings.tutorial = 1)}
-			showStats={stats.played > 0 || (modeData.modes[$mode].historical && !game.active)}
+			showStats={$settings.kiosk ? !game.active : stats.played > 0 || (modeData.modes[$mode].historical && !game.active)}
 			on:stats={() => (showStats = true)}
 			on:tutorial={() => (showTutorial = true)}
 			on:settings={() => (showSettings = true)}
 			on:reload={reload}
+			on:reset={resetGame}
 		/>
-		{#if $settings.kiosk}
-			<Kiosk on:reset={resetGame} />
-		{/if}
 	</div>
-	{#key boardVersion}
-		<Board
-			bind:this={board}
-			bind:value={game.board.words}
-			tutorial={$settings.tutorial === 1}
-			on:closeTutPopUp|once={() => ($settings.tutorial = 0)}
-			board={game.board}
-			{wordList}
-			guesses={game.guesses}
-			icon={modeData.modes[$mode].icon}
-			on:swipe={onSwipe}
-		/>
-	{/key}
+	<div class="board-space" bind:clientWidth={boardWidth} bind:clientHeight={boardHeight}>
+		{#key boardVersion}
+			<Board
+				bind:this={board}
+				bind:value={game.board.words}
+				tutorial={!$settings.kiosk && $settings.tutorial === 1}
+				on:closeTutPopUp|once={() => ($settings.tutorial = 0)}
+				board={game.board}
+				{wordList}
+				guesses={game.guesses}
+				icon={$settings.kiosk ? undefined : modeData.modes[$mode].icon}
+				on:swipe={onSwipe}
+			/>
+		{/key}
+	</div>
 	<Keyboard
+		enterLabel={copy.enter}
 		on:keystroke={() => {
 			if ($settings.tutorial) $settings.tutorial = 0;
 			board.hideCtx();
@@ -251,10 +249,11 @@
 		on:submitWord={submitWord}
 		on:esc={() => {
 			showTutorial = false;
+			if ($settings.kiosk && showStats && !game.active) resetGame();
 			showStats = false;
 			showSettings = false;
 		}}
-		disabled={!game.active || $settings.tutorial === 3 || showHistorical || showSettings || showStats || showTutorial}
+		disabled={!game.active || (!$settings.kiosk && $settings.tutorial === 3) || showHistorical || showSettings || showStats || showTutorial}
 	/>
 </main>
 
@@ -263,57 +262,67 @@
 	on:close|once={() => $settings.tutorial === 3 && --$settings.tutorial}
 	fullscreen={$settings.tutorial === 0}
 >
-	<Tutorial visible={showTutorial} />
+	{#if $settings.kiosk}
+		<div class="kiosk-help">
+			<h2>{copy.help}</h2>
+			<p>{copy.helpIntro}</p>
+			<p>{copy.helpClues}</p>
+			<p>{copy.helpEnd}</p>
+		</div>
+	{:else}
+		<Tutorial visible={showTutorial} />
+	{/if}
 </Modal>
 
-<Modal bind:visible={showStats}>
+<Modal completion={$settings.kiosk} bind:visible={showStats} on:close={() => { if ($settings.kiosk && !game.active) resetGame(); }}>
 	{#if $settings.kiosk}
-		<button type="button" class="button" on:click={resetGame}>Reset game</button>
-	{/if}
-	{#if modeData.modes[$mode].historical}
-		<h2 class="historical">Statistics not available for historical games</h2>
+		<KioskComplete won={game.lastWord === word} on:return={resetGame} />
 	{:else}
-		<Statistics data={stats} />
-		<Distribution distribution={stats.guesses} {game} />
-	{/if}
-	<Separator visible={!game.active}>
-		<Timer
-			slot="1"
-			bind:this={timer}
-			on:timeup={() => (showRefresh = true)}
-			on:reload={reload}
-		/>
-		<Share slot="2" state={game} />
-	</Separator>
-	<ShareGame wordNumber={game.wordNumber} />
-	{#if !game.active}
-		{#if supportsDefinitions($language)}
-			<Definition {word} alternates={2} />
+		{#if modeData.modes[$mode].historical}
+			<h2 class="historical">Statistics not available for historical games</h2>
 		{:else}
-			<div>Your word was <strong>{word}</strong>.</div>
+			<Statistics data={stats} />
+			<Distribution distribution={stats.guesses} {game} />
 		{/if}
-	{:else}
-		<!-- Fade with delay is to prevent a bright red button from appearing as soon as refresh is pressed -->
-		<div
-			in:fade={{ delay: 300 }}
-			class="button concede"
-			on:click={concede}
-			on:keydown={concede}
-		>
-			give up
-		</div>
+		<Separator visible={!game.active}>
+			<Timer
+				slot="1"
+				bind:this={timer}
+				on:timeup={() => (showRefresh = true)}
+				on:reload={reload}
+			/>
+			<Share slot="2" state={game} />
+		</Separator>
+		<ShareGame wordNumber={game.wordNumber} />
+		{#if !game.active}
+			{#if supportsDefinitions($language)}
+				<Definition {word} alternates={2} />
+			{:else}
+				<div>Your word was <strong>{word}</strong>.</div>
+			{/if}
+		{:else}
+			<!-- Fade with delay is to prevent a bright red button from appearing as soon as refresh is pressed -->
+			<div
+				in:fade={{ delay: 300 }}
+				class="button concede"
+				on:click={concede}
+				on:keydown={concede}
+			>
+				give up
+			</div>
+		{/if}
 	{/if}
 </Modal>
 
 <Modal fullscreen={true} bind:visible={showSettings}>
 	<Settings state={game} on:historical={() => (showHistorical = true)} />
 	{#if $settings.kiosk}
-		<button type="button" class="button" on:click={resetGame}>Reset game</button>
+		<button type="button" class="button" on:click={resetGame}>{copy.reset}</button>
 	{/if}
 	{#if game.active}
-		<div class="button concede" on:click={concede} on:keydown={concede}>give up</div>
+		<div class="button concede" on:click={concede} on:keydown={concede}>{copy.giveUp}</div>
 	{/if}
-	<Tips change={showSettings} />
+	{#if !$settings.kiosk}<Tips change={showSettings} />{/if}
 
 	<svelte:fragment slot="footer">
 		<div>
@@ -325,7 +334,7 @@
 					toaster.pop("localStorage cleared");
 				}}
 			>
-			v{version}, {modeData.modes[$mode].name} word #{game.wordNumber}
+			v{version}, {$settings.kiosk ? copy.round : `${modeData.modes[$mode].name} word`} #{game.wordNumber}
 			</div>
 		</div>
 	</svelte:fragment>
@@ -337,19 +346,36 @@
 
 <style lang="scss">
 	main {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
+		--key-height: clamp(42px, 6.5vh, 104px);
+		--key-font: clamp(13px, 2.1vh, 28px);
+		--key-gap: clamp(5px, 0.8vh, 12px);
+		display: grid;
+		grid-template-rows: auto minmax(0, 1fr) auto;
+		gap: clamp(10px, 1.5vh, 24px);
 		align-items: center;
 		height: 100%;
-		max-width: var(--game-width);
+		width: min(100%, 100vh);
 		margin: auto;
+		padding: 0 clamp(8px, 2vw, 28px) max(8px, env(safe-area-inset-bottom));
 		position: relative;
+	}
+	.board-space {
+		min-height: 0;
+		height: 100%;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	@supports (height: 100dvh) {
+		main { width: min(100%, 100dvh); --key-height: clamp(42px, 6.5dvh, 104px); }
 	}
 	.game-header {
 		width: 100%;
 		flex-shrink: 0;
 	}
+	.kiosk-help { line-height: 1.6; padding-top: 24px; }
+	.kiosk-help p { margin-top: 16px; }
 	.historical {
 		text-align: center;
 		margin-top: 10px;

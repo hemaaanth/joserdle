@@ -5,6 +5,7 @@
 
 	export let visible = false;
 	export let fullscreen = false;
+	export let completion = false;
 
 	const dispatch = createEventDispatcher();
 
@@ -16,6 +17,7 @@
 
 <div
 	class:visible
+	class:completion
 	class="overlay {fullscreen ? 'fullscreen' : 'popup'}"
 	on:click|self={close}
 	on:keydown|self={close}
@@ -93,6 +95,17 @@
 		opacity: 1;
 		visibility: visible;
 	}
+	.completion.overlay { background: #000b; }
+	.completion.popup .modal {
+		width: min(92vw, 560px);
+		max-width: none;
+		max-height: calc(100vh - 32px);
+		border: 1px solid var(--border-secondary);
+		border-radius: 24px;
+		padding: clamp(24px, 4vh, 44px);
+		box-shadow: 0 24px 100px #0006;
+	}
+	.completion .exit { top: 16px; right: 16px; }
 	.exit {
 		position: absolute;
 		top: var(--modal-padding);

@@ -70,14 +70,17 @@ This information cannot be linked back to individual users. It is for my own per
 
 Turn on **Settings → Kiosk Mode** for a shared tablet. The setting is saved on that browser.
 
-- **Full screen** enters or exits browser full screen when supported.
-- **Reset game** clears the board and keyboard clues. Stats, language, mode, and settings are kept. Daily and Hourly replay the current scheduled word; Infinite chooses from the current time seed.
-- After a win, the results screen stays visible for one second, then the game resets. Losses stay visible until Reset game or the idle reset.
+- The bundled QR SVG includes its white quiet zone and works offline. Regenerate with `npx --package qrcode qrcode -t svg -o public/img/joserdle-qr.svg -q 4 -e M https://joserdle.com/` if the destination changes.
+- The full-screen and reset icons sit beside Help in the top-left corner. **Full screen** enters or exits browser full screen when supported.
+- **Reset game** clears the board and keyboard clues and returns to the same Hourly #37896 answer. Kiosk progress is saved separately from normal games and does not change normal statistics. Turning kiosk mode off restores the prior normal selection.
+- Kiosk mode always plays [Hourly #37896](https://joserdle.com/#hourly/37896), with an all-caps headline. French is the default kiosk language; choose FR or EN in Settings. This changes the interface and accepted guess dictionary, while keeping the exact original English answer in both languages. The answer is accepted in either dictionary. Kiosk language is saved separately from normal games. Mode, historical selection, title taps, and swipes cannot change this puzzle.
+- After a win, a completion screen says “Scannez pour continuer à jouer” (French) or “Scan to play more” (English) and displays a QR code for `https://joserdle.com/`. It stays open until **Return**, close, or the idle reset. Return clears the game for the next visitor. Losses also offer Return.
+- The board and keyboard scale to the available screen size in portrait or landscape.
 - After 15 minutes without a tap, touch, or key press, the game resets and closes open dialogs. It also checks elapsed time when a suspended tab becomes visible again.
-- Kiosk mode requests a screen wake lock, retries when the page becomes visible or receives input, and releases the lock when kiosk mode is turned off. The status below the controls shows whether keep awake is active.
+- Kiosk mode requests a screen wake lock, retries when the page becomes visible or receives input, and releases the lock when kiosk mode is turned off. Keep awake runs silently in the background.
 
 ### Fire tablets and keep awake
 
 Keep awake uses the browser's [Screen Wake Lock API](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API). Serve the game over HTTPS (localhost also works for development). The page must stay visible, and browser permissions or battery saving can block or release the lock.
 
-Fire OS/Silk versions vary. The app checks for the API on the actual tablet and shows an unavailable or blocked message when necessary. A website cannot force a wake lock on an unsupported browser. In that case, use a tablet browser or kiosk app with a native keep-screen-on setting. Full screen alone does not keep the screen awake. Actual Fire tablet hardware still needs to be checked.
+Fire OS/Silk versions vary. The app checks for the API on the actual tablet and continues without a wake lock if the browser does not support it or blocks it. A website cannot force a wake lock on an unsupported browser. In that case, use a tablet browser or kiosk app with a native keep-screen-on setting. Full screen alone does not keep the screen awake. Actual Fire tablet hardware still needs to be checked.
